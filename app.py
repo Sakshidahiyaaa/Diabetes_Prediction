@@ -1,66 +1,38 @@
-
-import numpy as np
+import os
 import pickle
+import numpy as np
 import streamlit as st
 
-# Load the trained model and scaler
-loaded_model = pickle.load(open('trained_model.sav', 'rb'))
-scaler = pickle.load(open('scaler.sav', 'rb'))  # Load the saved scaler
+# Check if model files exist
+if os.path.exists("trained_model.sav") and os.path.exists("scaler.sav"):
+    loaded_model = pickle.load(open("trained_model.sav", "rb"))
+    scaler = pickle.load(open("scaler.sav", "rb"))
+else:
+    st.error("Error: Model files not found! Please upload trained_model.sav and scaler.sav")
 
-# Function for diabetes prediction
-def diabetes_prediction(input_data):
-    # Convert input_data to a NumPy array and reshape
-    input_data_as_numpy_array = np.asarray(input_data, dtype=float).reshape(1, -1)
+# Streamlit UI
+st.title("Diabetes Prediction Web App")
 
-    # Scale the input data using the same scaler
-    input_data_scaled = scaler.transform(input_data_as_numpy_array)
+# Input fields
+pregnancies = st.number_input("Number of Pregnancies", min_value=0, max_value=20, value=0)
+glucose = st.number_input("Glucose Level", min_value=0, max_value=300, value=0)
+blood_pressure = st.number_input("Blood Pressure value", min_value=0, max_value=200, value=0)
+skin_thickness = st.number_input("Skin Thickness value", min_value=0, max_value=100, value=0)
+insulin = st.number_input("Insulin Level", min_value=0, max_value=900, value=0)
+bmi = st.number_input("BMI value", min_value=0.0, max_value=100.0, value=0.0)
+diabetes_pedigree = st.number_input("Diabetes Pedigree Function value", min_value=0.0, max_value=3.0, value=0.0)
+age = st.number_input("Age of the Person", min_value=0, max_value=120, value=0)
 
-    # Make prediction
-    prediction = loaded_model.predict(input_data_scaled)
+# Prediction button
+if st.button("Diabetes Test Result"):
+    if os.path.exists("trained_model.sav") and os.path.exists("scaler.sav"):
+        # Preprocess the input
+        input_data = np.array([[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree, age]])
+        input_data_scaled = scaler.transform(input_data)
 
-    # Return result
-    if prediction[0] == 0:
-        return "The person is NOT diabetic"
+        # Get prediction
+        prediction = loaded_model.predict(input_data_scaled)
+        result = "Diabetic" if prediction[0] == 1 else "Not Diabetic"
+        st.success(f"Prediction: {result}")
     else:
-        return "The person IS diabetic"
-
-# Streamlit Web App
-def main():
-    # Title
-    st.title("Diabetes Prediction Web App")
-
-    # Input fields
-    Pregnancies = st.text_input("Number of Pregnancies", "0")
-    Glucose = st.text_input("Glucose Level", "0")
-    BloodPressure = st.text_input("Blood Pressure value", "0")
-    SkinThickness = st.text_input("Skin Thickness value", "0")
-    Insulin = st.text_input("Insulin Level", "0")
-    BMI = st.text_input("BMI value", "0")
-    DiabetesPedigreeFunction = st.text_input("Diabetes Pedigree Function value", "0")
-    Age = st.text_input("Age of the Person", "0")
-
-    # Variable to store the prediction result
-    diagnosis = ""
-
-    # Button for Prediction
-    if st.button("Diabetes Test Result"):
-        # Convert inputs to float before passing to the function
-        input_data = [
-            float(Pregnancies),
-            float(Glucose),
-            float(BloodPressure),
-            float(SkinThickness),
-            float(Insulin),
-            float(BMI),
-            float(DiabetesPedigreeFunction),
-            float(Age)
-        ]
-
-        diagnosis = diabetes_prediction(input_data)
-
-    # Display the result
-    st.success(diagnosis)
-
-# Run the app
-if __name__ == "__main__":
-    main() 
+        st.error("Model files not found! Cannot make prediction.")
